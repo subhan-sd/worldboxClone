@@ -1,20 +1,18 @@
 <div class="canvasContainer" [class.debug]="debug">
-    <canvas #gameCanvasDraw class="gameCanvasDraw" width="2560" height="2560"></canvas>
-    <canvas #gameCanvas class="gameCanvas" width="2560" height="2560"></canvas>
-    <canvas #gameCanvasGrid class="gameCanvasGrid" width="2560" height="2560"></canvas>
+    <canvas #gameCanvasDraw class="gameCanvasDraw"></canvas>
+    <canvas #gameCanvas class="gameCanvas"></canvas>
   </div>
 
 <div class="toolbar">
   <div class="toolGroup">
     <button
-      *ngFor="let color of presetColors"
+      *ngFor="let terrain of terrains"
       class="swatch"
-      [class.active]="currentTool === 'brush' && strokeStyle === color"
-      [style.background]="color"
-      [title]="color"
-      (click)="setColor(color)">
+      [class.active]="currentTool === 'brush' && currentTerrain === terrain.id"
+      [style.background]="terrain.color"
+      [title]="terrain.label"
+      (click)="setTerrain(terrain.id)">
     </button>
-    <input type="color" id="colorPicker" [value]="strokeStyle" (input)="onColorChange($event)">
   </div>
 
   <div class="toolGroup">
@@ -32,4 +30,3 @@
     <button class="tool" [class.active]="debug" (click)="toggleDebug()">Debug</button>
   </div>
 </div>
-  

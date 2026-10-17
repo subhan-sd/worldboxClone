@@ -3,6 +3,8 @@ import { OverWorld, OverWorldNpcConfig} from '../../classes/overWorld';
 import { NpcService } from '../../services/npc.service';
 import { TestDrawing } from '../../services/testDrawing.service';
 import { worldGridCells } from '../../services/gridCells.service';
+import { TerrainId, TERRAIN_LIST, DEFAULT_TERRAIN } from '../../models/terrain.model';
+import { CANVAS_SIZE } from '../../models/world.config';
 import { isPlatformBrowser, NgFor } from '@angular/common';
 
 @Component({
@@ -37,14 +39,14 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
 
   debug = false;
   currentTool: 'brush' | 'eraser' = 'brush';
-  strokeStyle = 'lightblue';
-  presetColors = ['lightblue', '#add8e6', '#ffffff', '#4caf50', '#8d6e63'];
+  terrains = TERRAIN_LIST;
+  currentTerrain: TerrainId = DEFAULT_TERRAIN;
 
   private isBrowser: boolean;
+  private waterInterval?: ReturnType<typeof setInterval>;
 
   @ViewChild('gameCanvas') gameCanvas!: ElementRef;
   @ViewChild('gameCanvasDraw') gameCanvasDraw!: ElementRef;
-  @ViewChild('gameCanvasGrid') gameCanvasGrid!: ElementRef;
 
   constructor(
     private npcService: NpcService,
@@ -66,7 +68,8 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
     window.addEventListener('gesturestart', this.handleGestureEvent, { passive: false });
     window.addEventListener('gesturechange', this.handleGestureEvent, { passive: false });
     window.addEventListener('gestureend', this.handleGestureEvent, { passive: false });
-    this.updateScaleValue()
+    this.updateScaleValue(this.computeFitScale())
+    this.waterInterval = setInterval(() => this.worldGrid.renderWaterTiles(), 250);
   }
 
   ngOnDestroy() {
@@ -75,6 +78,7 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
       window.removeEventListener('gesturestart', this.handleGestureEvent);
       window.removeEventListener('gesturechange', this.handleGestureEvent);
       window.removeEventListener('gestureend', this.handleGestureEvent);
+      if (this.waterInterval !== undefined) clearInterval(this.waterInterval);
     }
   }
 
@@ -88,7 +92,6 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
   scaleCanvasAll() {
     this.scaleCanvas(this.gameCanvas, this.scaleValue, this.translateX, this.translateY);
     this.scaleCanvas(this.gameCanvasDraw, this.scaleValue, this.translateX, this.translateY);
-    this.scaleCanvas(this.gameCanvasGrid, this.scaleValue, this.translateX, this.translateY);
   }
 
   scaleCanvas(canvas: ElementRef, scale: number, translateX: number, translateY: number) {
@@ -99,7 +102,13 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
 
   @HostListener('window:resize', ['$event'])
   onResize(event: Event) {
-    // this.windowDimensions()
+    if (!this.isBrowser) return;
+    this.windowDimensions();
+    this.updateScaleValue(this.computeFitScale());
+  }
+
+  computeFitScale(): number {
+    return Math.min(this.windowWidth, this.windowHeight) / CANVAS_SIZE;
   }
 
   // @HostListener('window:keydown', ['$event']) //todo: fix the way movement of chosen npc works, when holding down the moving key and then letting go. It moves one more than expected.
@@ -177,22 +186,18 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
   }
 
   initializeOverWorld() {
-    // debugger
-    const overNpcConfig: OverWorldNpcConfig = {
-      element: document.querySelector('.canvasContainer') as HTMLElement,
-      canvas: 'gameCanvas',
-    };
-    const overWorldConfig: OverWorldNpcConfig = {
-      element: document.querySelector('.canvasContainer') as HTMLElement,
-      canvas: 'gameCanvasDraw',
-    };
-    const overWorldGridCells: OverWorldNpcConfig = {
-      element: document.querySelector('.canvasContainer') as HTMLElement,
-      canvas: 'gameCanvasGrid',
-    };
+    const element = document.querySelector('.canvasContainer') as HTMLElement;
+    const overNpcConfig: OverWorldNpcConfig = { element, canvas: 'gameCanvas' };
+    const overTerrainConfig: OverWorldNpcConfig = { element, canvas: 'gameCanvasDraw' };
+
+    const terrainOverWorld = new OverWorld(overTerrainConfig);
     this.overWorld = new OverWorld(overNpcConfig);
-    this.drawing.initDrawing(new OverWorld(overWorldConfig))
-    this.worldGrid.initWorldGrid(new OverWorld(overWorldGridCells))
+    terrainOverWorld.canvas.width = CANVAS_SIZE;
+    terrainOverWorld.canvas.height = CANVAS_SIZE;
+    this.overWorld.canvas.width = CANVAS_SIZE;
+    this.overWorld.canvas.height = CANVAS_SIZE;
+    this.drawing.initDrawing(terrainOverWorld);
+    this.worldGrid.initWorldGrid(terrainOverWorld);
   }
 
   startGameLoop() { 
@@ -263,20 +268,15 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
     this.top = (this.topInPx + (diffY * -1)) / this.windowHeight * 100;
     this.left = (this.leftInPx + (diffX * -1)) / this.windowWidth * 100;
     
-    this.scaleValue = Math.max(0.1, Math.min(value, 3)); 
+    this.scaleValue = Math.max(0.1, Math.min(value, 10)); 
     this.scaleCanvasAll();
     this.worldGrid.updateScaleValue(this.scaleValue);
     console.log(`Scale value updated to: ${this.scaleValue}`);
   }
 
-  onColorChange(event: Event) {
-    const color = (event.target as HTMLInputElement).value;
-    this.setColor(color);
-  }
-
-  setColor(color: string) {
-    this.strokeStyle = color;
-    this.drawing.setStrokeStyle(color);
+  setTerrain(terrain: TerrainId) {
+    this.currentTerrain = terrain;
+    this.drawing.setTerrain(terrain);
     this.setTool('brush');
   }
 
@@ -299,7 +299,7 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
   }
 
   resetZoom() {
-    this.updateScaleValue(1);
+    this.updateScaleValue(this.computeFitScale());
   }
 
   getCurrentScale(){

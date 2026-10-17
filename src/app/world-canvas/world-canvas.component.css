@@ -4,7 +4,7 @@
     height: 100vh;
 }
 
-.gameCanvas, .gameCanvasDraw, .gameCanvasGrid {
+.gameCanvas, .gameCanvasDraw {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -12,8 +12,7 @@
     image-rendering: pixelated;
 }
 
-.canvasContainer.debug .gameCanvas,
-.canvasContainer.debug .gameCanvasGrid {
+.canvasContainer.debug .gameCanvas {
     border: solid blue 1px;
 }
 
@@ -62,13 +61,5 @@
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 3px;
-    cursor: pointer;
-}
-
-#colorPicker {
-    width: 28px;
-    height: 20px;
-    padding: 0;
-    border: none;
     cursor: pointer;
 }
