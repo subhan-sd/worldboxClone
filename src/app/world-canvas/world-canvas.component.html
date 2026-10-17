@@ -1,8 +1,35 @@
-<div class="canvasContainer">
+<div class="canvasContainer" [class.debug]="debug">
     <canvas #gameCanvasDraw class="gameCanvasDraw" width="2560" height="2560"></canvas>
     <canvas #gameCanvas class="gameCanvas" width="2560" height="2560"></canvas>
     <canvas #gameCanvasGrid class="gameCanvasGrid" width="2560" height="2560"></canvas>
-    <canvas class="red" width="2560" height="2560"></canvas>
   </div>
-  <input type="color" id="colorPicker" (input)="onColorChange($event)">
+
+<div class="toolbar">
+  <div class="toolGroup">
+    <button
+      *ngFor="let color of presetColors"
+      class="swatch"
+      [class.active]="currentTool === 'brush' && strokeStyle === color"
+      [style.background]="color"
+      [title]="color"
+      (click)="setColor(color)">
+    </button>
+    <input type="color" id="colorPicker" [value]="strokeStyle" (input)="onColorChange($event)">
+  </div>
+
+  <div class="toolGroup">
+    <button class="tool" [class.active]="currentTool === 'brush'" (click)="setTool('brush')">Brush</button>
+    <button class="tool" [class.active]="currentTool === 'eraser'" (click)="setTool('eraser')">Eraser</button>
+  </div>
+
+  <div class="toolGroup">
+    <button class="tool" (click)="zoomIn()" title="Zoom in">+</button>
+    <button class="tool" (click)="zoomOut()" title="Zoom out">-</button>
+    <button class="tool" (click)="resetZoom()" title="Reset zoom">Reset</button>
+  </div>
+
+  <div class="toolGroup">
+    <button class="tool" [class.active]="debug" (click)="toggleDebug()">Debug</button>
+  </div>
+</div>
   

@@ -116,6 +116,27 @@ export class worldGridCells {
         return this.mapOfTiles[`x${x}y${y}`]
     }
 
+    // ponytail: only clears the draw layer (gameCanvasDraw); grid/floor layer not re-rendered until reload
+    eraseOnGrid(event: MouseEvent, overWorld: OverWorld){
+        const rect = this.overWorld.canvas.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / this.scaleValue;
+        const y = (event.clientY - rect.top) / this.scaleValue;
+
+        const { tx, ty } = this.getTileCoordinates(x, y);
+        if (ty >= 0 && ty < this.numVerticalTiles && tx >= 0 && tx < this.numHorizontalTiles) {
+            const tile = this.mapOfTiles[`x${tx}y${ty}`];
+            if (tile) {
+                tile.traversable = false;
+                tile.tileType = 'transparent';
+            }
+            overWorld.ctx.clearRect(tx * this.L - 2, ty * this.H - 2, this.L + 4, this.H + 4);
+        }
+    }
+
+    setDisplayGrid(display: boolean){
+        this.displayGrid = display;
+    }
+
     getScaleValue(){
         return this.scaleValue;
     }

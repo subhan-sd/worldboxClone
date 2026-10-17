@@ -3,12 +3,12 @@ import { OverWorld, OverWorldNpcConfig} from '../../classes/overWorld';
 import { NpcService } from '../../services/npc.service';
 import { TestDrawing } from '../../services/testDrawing.service';
 import { worldGridCells } from '../../services/gridCells.service';
-import { isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser, NgFor } from '@angular/common';
 
 @Component({
   selector: 'app-world-canvas',
   standalone: true,
-  imports: [],
+  imports: [NgFor],
   templateUrl: './world-canvas.component.html',
   styleUrls: ['./world-canvas.component.css'] // Fixed typo: styleUrl to styleUrls
 })
@@ -31,9 +31,14 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
   leftInPx = 0;
 
   mousePosition = {
-    x : this.windowWidth / 2,
-    y :this.windowHeight / 2
+    x : 0,
+    y : 0
   }
+
+  debug = false;
+  currentTool: 'brush' | 'eraser' = 'brush';
+  strokeStyle = 'lightblue';
+  presetColors = ['lightblue', '#add8e6', '#ffffff', '#4caf50', '#8d6e63'];
 
   private isBrowser: boolean;
 
@@ -50,17 +55,18 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
   ){this.isBrowser = isPlatformBrowser(this.platformId);}
 
   ngOnInit(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.scaleValue = this.worldGrid.getScaleValue()
     this.initializeOverWorld();
     this.windowDimensions()
     this.startGameLoop();
-    if (this.isBrowser) {
-      window.addEventListener('wheel', this.handleWheelEvent, { passive: false });
-      window.addEventListener('gesturestart', this.handleGestureEvent, { passive: false });
-      window.addEventListener('gesturechange', this.handleGestureEvent, { passive: false });
-      window.addEventListener('gestureend', this.handleGestureEvent, { passive: false });
-      this.updateScaleValue()
-    }
+    window.addEventListener('wheel', this.handleWheelEvent, { passive: false });
+    window.addEventListener('gesturestart', this.handleGestureEvent, { passive: false });
+    window.addEventListener('gesturechange', this.handleGestureEvent, { passive: false });
+    window.addEventListener('gestureend', this.handleGestureEvent, { passive: false });
+    this.updateScaleValue()
   }
 
   ngOnDestroy() {
@@ -73,6 +79,9 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
   }
 
   ngAfterViewInit(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.scaleCanvasAll();
   }
 
@@ -262,7 +271,35 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
 
   onColorChange(event: Event) {
     const color = (event.target as HTMLInputElement).value;
+    this.setColor(color);
+  }
+
+  setColor(color: string) {
+    this.strokeStyle = color;
     this.drawing.setStrokeStyle(color);
+    this.setTool('brush');
+  }
+
+  setTool(tool: 'brush' | 'eraser') {
+    this.currentTool = tool;
+    this.drawing.setTool(tool);
+  }
+
+  toggleDebug() {
+    this.debug = !this.debug;
+    this.worldGrid.setDisplayGrid(this.debug);
+  }
+
+  zoomIn() {
+    this.updateScaleValue(this.scaleValue + 0.1);
+  }
+
+  zoomOut() {
+    this.updateScaleValue(this.scaleValue - 0.1);
+  }
+
+  resetZoom() {
+    this.updateScaleValue(1);
   }
 
   getCurrentScale(){

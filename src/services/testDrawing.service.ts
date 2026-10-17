@@ -18,6 +18,7 @@ export class TestDrawing {
   startOfCanvasX!: number;
   startOfCanvasY!: number;
   private strokeStyle: string = 'lightblue';
+  tool: 'brush' | 'eraser' = 'brush';
 
   initDrawing(overWorld: OverWorld): void {
     this.overWorld = overWorld;
@@ -27,6 +28,10 @@ export class TestDrawing {
 
   setStrokeStyle(color: string) {
     this.strokeStyle = color;
+  }
+
+  setTool(tool: 'brush' | 'eraser') {
+    this.tool = tool;
   }
 
   // getWindowDimensions(windowWidth : number, windowHeight: number){
@@ -63,7 +68,11 @@ export class TestDrawing {
   sketch(event: MouseEvent): void {
     // debugger
     if (!this.paint) return;
-    this.GridCells.clickedOnGrid(event, this.overWorld, this.strokeStyle, 0);
+    if (this.tool === 'eraser') {
+      this.GridCells.eraseOnGrid(event, this.overWorld);
+    } else {
+      this.GridCells.clickedOnGrid(event, this.overWorld, this.strokeStyle, 0);
+    }
   }
 
   // getCanvas(){
