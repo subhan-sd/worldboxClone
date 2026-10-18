@@ -1,6 +1,7 @@
 import type { IRandom } from '../random/seeded-rng';
 import { TileGrid } from '../models/tile-grid';
-import type { SimTerrainType, SimTile, ResourceStock } from '../models/simulation-types';
+import type { SimTerrainType } from '../models/simulation-types';
+import { createTerrainTile } from '../models/terrain-rules';
 
 export class WorldGenerator {
   static generate(width: number, height: number, rng: IRandom): TileGrid {
@@ -88,31 +89,6 @@ export class WorldGenerator {
   }
 
   private static setTileTerrain(grid: TileGrid, x: number, y: number, terrain: SimTerrainType): void {
-    const traversable = terrain !== 'water' && terrain !== 'rock';
-    const fertility = terrain === 'soil' ? 0.9 : terrain === 'grass' ? 0.7 : terrain === 'sand' ? 0.2 : 0.05;
-
-    const maxResources: ResourceStock = {
-      food: terrain === 'soil' ? 30 : terrain === 'grass' ? 15 : terrain === 'water' ? 8 : 0,
-      wood: terrain === 'grass' ? 25 : terrain === 'soil' ? 10 : 0,
-      stone: terrain === 'rock' ? 60 : terrain === 'grass' ? 5 : 2,
-    };
-
-    const resources: ResourceStock = {
-      food: Math.floor(maxResources.food * 0.6),
-      wood: Math.floor(maxResources.wood * 0.6),
-      stone: Math.floor(maxResources.stone * 0.6),
-    };
-
-    const newTile: SimTile = {
-      x,
-      y,
-      terrain,
-      traversable,
-      fertility,
-      waterAccess: false,
-      resources,
-      maxResources,
-    };
-    grid.setTile(x, y, newTile);
+    grid.setTile(x, y, createTerrainTile(x, y, terrain));
   }
 }

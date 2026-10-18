@@ -1,4 +1,5 @@
-import type { SimTerrainType, SimTile, ResourceStock } from './simulation-types';
+import type { SimTerrainType, SimTile } from './simulation-types';
+import { createTerrainTile } from './terrain-rules';
 
 export class TileGrid {
   readonly width: number;
@@ -19,29 +20,7 @@ export class TileGrid {
   }
 
   private createDefaultTile(x: number, y: number, terrain: SimTerrainType): SimTile {
-    const traversable = terrain !== 'water' && terrain !== 'rock';
-    const fertility = terrain === 'soil' ? 0.9 : terrain === 'grass' ? 0.7 : terrain === 'sand' ? 0.2 : 0.05;
-    const maxResources: ResourceStock = {
-      food: terrain === 'soil' ? 25 : terrain === 'grass' ? 15 : 0,
-      wood: terrain === 'grass' ? 20 : terrain === 'soil' ? 10 : 0,
-      stone: terrain === 'rock' ? 50 : terrain === 'grass' ? 5 : 2,
-    };
-    const resources: ResourceStock = {
-      food: Math.floor(maxResources.food * 0.5),
-      wood: Math.floor(maxResources.wood * 0.5),
-      stone: Math.floor(maxResources.stone * 0.5),
-    };
-
-    return {
-      x,
-      y,
-      terrain,
-      traversable,
-      fertility,
-      waterAccess: false,
-      resources,
-      maxResources,
-    };
+    return createTerrainTile(x, y, terrain);
   }
 
   inBounds(x: number, y: number): boolean {

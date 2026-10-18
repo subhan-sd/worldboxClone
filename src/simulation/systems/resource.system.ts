@@ -12,8 +12,11 @@ export class ResourceSystem {
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
 
-      // Food regeneration (boosted by fertility and water access)
-      if (tile.resources.food < tile.maxResources.food) {
+      // Food regenerates only on fertile land, never on water, sand, or rock.
+      if (
+        (tile.terrain === 'grass' || tile.terrain === 'soil') &&
+        tile.resources.food < tile.maxResources.food
+      ) {
         const waterBonus = tile.waterAccess ? 1.5 : 1.0;
         const gain = config.foodRegenRate * tile.fertility * waterBonus;
         tile.resources.food = Math.min(tile.maxResources.food, tile.resources.food + gain);
