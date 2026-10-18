@@ -4,6 +4,7 @@ import { worldGridCells } from './gridCells.service';
 import { NpcService } from './npc.service';
 import { NPC, NPCState } from '../models/npc.model';
 import { TerrainId, TileObjectType, DEFAULT_TERRAIN } from '../models/terrain.model';
+import { applyTerrainToTile } from '../simulation/models/terrain-rules';
 import type {
   SimulationStatistics,
   SimulationEvent,
@@ -431,29 +432,14 @@ export class SimulationBridgeService {
   onTileDrawn(x: number, y: number, terrain: TerrainId): void {
     const grid = this.engine.getGrid();
     const tile = grid.get(x, y);
-    if (tile) {
-      tile.terrain = terrain;
-      tile.traversable = terrain !== 'water';
-      if (terrain === 'water') {
-        tile.resources.food = 0;
-        tile.resources.wood = 0;
-        tile.resources.stone = 0;
-      } else if (terrain === 'soil') {
-        tile.resources.food = 10;
-        tile.resources.wood = 4;
-        tile.resources.stone = 1;
-      } else if (terrain === 'grass') {
-        tile.resources.food = 6;
-        tile.resources.wood = 10;
-        tile.resources.stone = 2;
-      } else if (terrain === 'sand') {
-        tile.resources.food = 0;
-        tile.resources.wood = 0;
-        tile.resources.stone = 1;
-      }
-      grid.recalculateWaterAccess();
-      const obj = this.deriveTileObjectType(tile);
-      this.gridCells.updateTile(x, y, terrain, obj);
-    }
+    if (!tile) return;
+
+    // Keep the simulation's terrain-dependent rules in one canonical place.
+    // Resource stock is preserved only up to the new terrain's capacity.
+    applyTerrainToTile(tile, terrain);
+    grid.recalculateWaterAccess();
+
+    const obj = this.deriveTileObjectType(tile);
+    this.gridCells.updateTile(x, y, terrain, obj);
   }
 }
