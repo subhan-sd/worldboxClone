@@ -7,6 +7,7 @@ export class OverWorld {
   element: HTMLElement;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
+  private static imageCache: Map<string, HTMLImageElement> = new Map();
 
   constructor(config: OverWorldNpcConfig) {
     this.element = config.element;
@@ -18,35 +19,49 @@ export class OverWorld {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); 
   }
 
+  private getImage(src: string): HTMLImageElement {
+    let img = OverWorld.imageCache.get(src);
+    if (!img) {
+      img = new Image();
+      img.src = src;
+      OverWorld.imageCache.set(src, img);
+    }
+    return img;
+  }
+
   renderNpc(
       clearCanvas : boolean = false,
-      img : string = "../../assets/img/pixilart-drawing.png",
+      img : string = "../../assets/img/npcAdam.png",
       currentX : number = 0,
       currentY : number = 0,
       leftCut : number = 0,
       topCut : number = 0,
-      widthOfCut : number = 12,  
-      heightOfCut : number = 12,
-      sizeToDraw1 : number = 12,
-      sizeToDraw2 : number = 12
-    ){ //pass in parameters for npc to enhance multiple npc 
-    const hero = new Image();
-    hero.onload = () => {
-      if(clearCanvas) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); 
+      widthOfCut : number = 64,  
+      heightOfCut : number = 64,
+      sizeToDraw1 : number = 64,
+      sizeToDraw2 : number = 64
+    ){ 
+    if(clearCanvas) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); 
+    const hero = this.getImage(img);
+    const draw = () => {
       this.ctx.imageSmoothingEnabled = false; 
       this.ctx.drawImage(
-          hero,
-            leftCut, //left cut
-            topCut, //top  cut
-            12, //width of cut
-            12, //height of cut 
-            currentX - 1, //x position on canvas 
-            currentY - 2, //y position on canvas
-            12, //size to draw
-            12 //size to draw
-          );
+        hero,
+        leftCut,
+        topCut,
+        widthOfCut,
+        heightOfCut,
+        currentX,
+        currentY,
+        sizeToDraw1,
+        sizeToDraw2
+      );
+    };
+    if (hero.complete && hero.naturalWidth > 0) {
+      draw();
+    } else {
+      hero.onload = () => draw();
     }
-    hero.src = img;
   }
 
 }

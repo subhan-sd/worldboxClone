@@ -1,0 +1,906 @@
+:host {
+  display: block;
+}
+
+.inspectorPanel {
+  display: flex;
+  flex-direction: column;
+  width: 540px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 100px);
+  background: rgba(18, 24, 38, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+/* Header */
+.inspectorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(10, 15, 26, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btnBack {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btnBack:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.inspectorTitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: #fbbf24;
+}
+
+.tabNav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tabBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.tabBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tabBtn.active {
+  color: #0f172a;
+  background: #fbbf24;
+  font-weight: 600;
+}
+
+.btnClose {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.btnClose:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Content */
+.inspectorContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tabBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Filters */
+.filterBar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inputSearch {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 12px;
+}
+
+.inputSearch:focus {
+  outline: none;
+  border-color: #fbbf24;
+}
+
+.filterRow {
+  display: flex;
+  gap: 6px;
+}
+
+.selectFilter {
+  flex: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+/* People Container */
+.peopleContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.peopleList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.personRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.personRow:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.personRow.selected {
+  background: rgba(251, 191, 36, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.personRow.deceased {
+  opacity: 0.65;
+  filter: grayscale(0.6);
+}
+
+.personMain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.personName {
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.personSub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+/* Badges */
+.badgeId {
+  font-size: 10px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.badgeIdLarge {
+  font-size: 11px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.badgeStatus {
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.badgeStatus.alive {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.badgeStatus.dead {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.badgeStage {
+  font-size: 10px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.statPill {
+  font-size: 10px;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Profile Detail */
+.profileDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profileHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profileTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profileName {
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.profileTags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btnLocate {
+  background: #0284c7;
+  color: #fff;
+  border: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.btnLocate:hover {
+  background: #0369a1;
+}
+
+.deceasedBox {
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 4px;
+  color: #fca5a5;
+  font-size: 11px;
+}
+
+/* Sections */
+.sectionBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sectionTitle {
+  font-weight: 600;
+  font-size: 12px;
+  color: #93c5fd;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 4px;
+}
+
+/* Meters */
+.meterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meterRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meterLabel {
+  width: 50px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.meterBar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+}
+
+.meterFill.hp {
+  background: #22c55e;
+}
+
+.meterFill.hunger {
+  background: #f59e0b;
+}
+
+.meterFill.energy {
+  background: #3b82f6;
+}
+
+.meterVal {
+  width: 50px;
+  font-size: 10px;
+  text-align: right;
+  color: #cbd5e1;
+  font-family: monospace;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.infoKey {
+  color: #94a3b8;
+}
+
+.traitsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.traitCard {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 5px 8px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.btnToggleGenome {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.genomeBox {
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: monospace;
+  color: #a5f3fc;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.affilRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.btnLink {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.btnLink:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.infoMuted {
+  color: #64748b;
+  font-style: italic;
+}
+
+.famLinksGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.famChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+
+.famChip:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: #fbbf24;
+}
+
+.famChip.missing {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+  cursor: default;
+}
+
+.miniStatus {
+  font-size: 8px;
+}
+
+.miniStatus.alive {
+  color: #4ade80;
+}
+
+.btnViewTree {
+  margin-top: 6px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Family Tree View */
+.familyView {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.familyHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.familyHeader h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #fff;
+}
+
+.treeContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.treeLevel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.levelHeader {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.nodeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.treeCard {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-width: 110px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.treeCard:hover {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.treeCard.targetCard {
+  border: 2px solid #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  cursor: default;
+}
+
+.treeCard.deceased {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.treeCard.none {
+  cursor: default;
+  color: #64748b;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.treeCardRole {
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.treeCardName {
+  font-weight: 600;
+  font-size: 12px;
+  color: #fff;
+}
+
+.treeCardMeta {
+  font-size: 10px;
+  color: #cbd5e1;
+}
+
+.treeConnector {
+  font-size: 16px;
+  color: #fbbf24;
+  line-height: 1;
+}
+
+.siblingsSection {
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Clans Tab */
+.clansContainer, .settlementsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clanList, .settlementList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.clanRow, .settlementRow {
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clanRow:hover, .settlementRow:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.clanRow.selected, .settlementRow.selected {
+  background: rgba(251, 191, 36, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.clanRowHead, .settleRowHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clanName, .settleName {
+  font-weight: 600;
+  color: #fff;
+}
+
+.clanStatus {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.clanStatus.nomad {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.clanStatus.settled {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.clanStatus.disbanded {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.clanMeta, .settleMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.clanDetail, .settlementDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.membersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+}
+
+.memberCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 5px 8px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.memberCard:hover {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: #fbbf24;
+}
+
+.memberName {
+  font-weight: 600;
+  color: #f1f5f9;
+  font-size: 11px;
+}
+
+.linkText {
+  color: #60a5fa;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.buildingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.buildingCard {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+/* History Tab */
+.historyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.retentionNotice {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.eventTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.eventItem {
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #fbbf24;
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eventHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eventTick {
+  font-size: 10px;
+  font-family: monospace;
+  color: #fbbf24;
+}
+
+.eventTypeBadge {
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.eventMsg {
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.eventLinks {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.btnEventLink {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #93c5fd;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.btnEventLink:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* World Stats Tab */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.statCard {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+
+.statVal {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fbbf24;
+  font-family: monospace;
+}
+
+.statLabel {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.demoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.demoItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+
+/* Empty notices */
+.emptyNotice {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 12px;
+}

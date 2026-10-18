@@ -63,3 +63,106 @@
     border-radius: 3px;
     cursor: pointer;
 }
+
+/* Inspector Toolbar (Top Left) */
+.inspectorToolbar {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    flex-wrap: wrap;
+    max-width: calc(100vw - 300px);
+}
+
+.worldTimeBadge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor: help;
+}
+
+.timeIcon {
+    font-size: 13px;
+}
+
+.timeText {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fbbf24;
+    font-family: monospace;
+}
+
+.timeStatus {
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.timeStatus.running {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.navGroup {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.navBtn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #cbd5e1;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
+
+.navBtn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.navBtn.active {
+    background: #fbbf24;
+    color: #0f172a;
+    border-color: #fbbf24;
+    font-weight: 700;
+}
+
+/* Inspector Floating Overlay */
+.inspectorOverlay {
+    position: fixed;
+    top: 58px;
+    left: 12px;
+    z-index: 30;
+}
+
+@media (max-width: 768px) {
+    .inspectorToolbar {
+        max-width: calc(100vw - 24px);
+    }
+    .inspectorOverlay {
+        top: 96px;
+        left: 8px;
+    }
+}

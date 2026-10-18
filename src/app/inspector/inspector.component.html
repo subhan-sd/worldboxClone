@@ -1,0 +1,586 @@
+<div class="inspectorPanel" (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+  <!-- Header Bar -->
+  <div class="inspectorHeader">
+    <div class="headerLeft">
+      <button *ngIf="canGoBack()" class="btnBack" (click)="goBack()" title="Kembali ke tampilan sebelumnya">← Back</button>
+      <span class="inspectorTitle">Inspector</span>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabNav">
+      <button class="tabBtn" [class.active]="activeTab === 'people'" (click)="switchTab('people')">People</button>
+      <button class="tabBtn" [class.active]="activeTab === 'families'" (click)="switchTab('families')">Families</button>
+      <button class="tabBtn" [class.active]="activeTab === 'clans'" (click)="switchTab('clans')">Clans</button>
+      <button class="tabBtn" [class.active]="activeTab === 'settlements'" (click)="switchTab('settlements')">Settlements</button>
+      <button class="tabBtn" [class.active]="activeTab === 'history'" (click)="switchTab('history')">History</button>
+      <button class="tabBtn" [class.active]="activeTab === 'stats'" (click)="switchTab('stats')">World Stats</button>
+    </div>
+
+    <button class="btnClose" (click)="onClose()" title="Tutup Inspector">✕</button>
+  </div>
+
+  <!-- Content Body -->
+  <div class="inspectorContent">
+    <!-- ==================== TAB: PEOPLE ==================== -->
+    <div *ngIf="activeTab === 'people'" class="tabBody">
+      <!-- Search and Filter Bar -->
+      <div class="filterBar">
+        <input
+          type="text"
+          class="inputSearch"
+          placeholder="Cari nama atau ID..."
+          [value]="peopleSearch"
+          (input)="onSearchInput($event)"
+        />
+        <div class="filterRow">
+          <select class="selectFilter" [value]="peopleStatusFilter" (change)="onStatusFilterChange($event)">
+            <option value="all">Status: Semua</option>
+            <option value="alive">Status: Hidup</option>
+            <option value="deceased">Status: Meninggal</option>
+          </select>
+          <select class="selectFilter" [value]="peopleStageFilter" (change)="onStageFilterChange($event)">
+            <option value="all">Tahap: Semua</option>
+            <option value="child">Tahap: Anak</option>
+            <option value="adult">Tahap: Dewasa</option>
+            <option value="elder">Tahap: Lansia</option>
+          </select>
+          <select class="selectFilter" [value]="peopleSortBy" (change)="onSortChange($event)">
+            <option value="age">Urut: Umur (Tertua)</option>
+            <option value="name">Urut: Nama</option>
+            <option value="health">Urut: Kesehatan</option>
+            <option value="hunger">Urut: Kelaparan</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Split Layout: List and Selected Detail -->
+      <div class="peopleContainer">
+        <!-- List View -->
+        <div class="peopleList">
+          <div *ngIf="filteredIndividuals.length === 0" class="emptyNotice">
+            Tidak ada individu yang cocok dengan kriteria pencarian.
+          </div>
+          <div
+            *ngFor="let ind of filteredIndividuals"
+            class="personRow"
+            [class.selected]="ind.id === selectedId"
+            [class.deceased]="!ind.isAlive"
+            (click)="selectEntity('people', ind.id)"
+          >
+            <div class="personMain">
+              <span class="personName">{{ ind.name }}</span>
+              <span class="badgeId">{{ ind.id }}</span>
+            </div>
+            <div class="personSub">
+              <span class="badgeStatus" [class.alive]="ind.isAlive" [class.dead]="!ind.isAlive">
+                {{ ind.isAlive ? 'Hidup' : 'Meninggal' }}
+              </span>
+              <span class="badgeStage">{{ ind.lifeStage }} ({{ ind.age }}t)</span>
+              <span *ngIf="ind.isAlive" class="statPill">HP: {{ ind.health | number:'1.0-0' }}</span>
+              <span *ngIf="ind.isAlive" class="statPill">Lapar: {{ ind.hunger | number:'1.0-0' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Profile View -->
+        <div *ngIf="selectedIndividual as ind" class="profileDetail">
+          <div class="profileHeader">
+            <div class="profileTitleRow">
+              <h3 class="profileName">{{ ind.name }}</h3>
+              <span class="badgeIdLarge">{{ ind.id }}</span>
+            </div>
+            <div class="profileTags">
+              <span class="badgeStatus" [class.alive]="ind.isAlive" [class.dead]="!ind.isAlive">
+                {{ ind.isAlive ? 'Hidup' : 'Meninggal' }}
+              </span>
+              <span class="badgeStage">{{ ind.gender === 'male' ? 'Pria' : 'Wanita' }} · {{ ind.lifeStage }} (Umur: {{ ind.age }} tick)</span>
+              <button *ngIf="ind.isAlive" class="btnLocate" (click)="onLocate(ind.x, ind.y)" title="Pusatkan kamera ke individu ini">📍 Cari di Peta</button>
+            </div>
+          </div>
+
+          <!-- Deceased Info -->
+          <div *ngIf="!ind.isAlive" class="deceasedBox">
+            <span class="warnIcon">⚠️</span> Meninggal pada tick {{ ind.deathTick !== undefined ? ind.deathTick : '—' }} (Penyebab: {{ ind.causeOfDeath || 'Tidak diketahui' }})
+          </div>
+
+          <!-- Needs & Stats -->
+          <div class="sectionBox">
+            <div class="sectionTitle">Kebutuhan & Kondisi</div>
+            <div class="meterGroup">
+              <div class="meterRow">
+                <span class="meterLabel">Health:</span>
+                <div class="meterBar"><div class="meterFill hp" [style.width.%]="ind.health"></div></div>
+                <span class="meterVal">{{ ind.health | number:'1.0-0' }}/100</span>
+              </div>
+              <div class="meterRow">
+                <span class="meterLabel">Hunger:</span>
+                <div class="meterBar"><div class="meterFill hunger" [style.width.%]="ind.hunger"></div></div>
+                <span class="meterVal">{{ ind.hunger | number:'1.0-0' }}/100</span>
+              </div>
+              <div class="meterRow">
+                <span class="meterLabel">Energy:</span>
+                <div class="meterBar"><div class="meterFill energy" [style.width.%]="ind.energy"></div></div>
+                <span class="meterVal">{{ ind.energy | number:'1.0-0' }}/100</span>
+              </div>
+            </div>
+            <div class="infoGrid">
+              <div><span class="infoKey">Aksi:</span> {{ ind.currentAction }}</div>
+              <div><span class="infoKey">Tujuan:</span> {{ ind.currentGoal }}</div>
+              <div><span class="infoKey">Posisi:</span> Tile ({{ ind.x }}, {{ ind.y }})</div>
+              <div><span class="infoKey">Lahir:</span> Tick {{ ind.birthTick }}</div>
+            </div>
+          </div>
+
+          <!-- Traits & Genetics -->
+          <div class="sectionBox">
+            <div class="sectionTitle">Trait Karakter</div>
+            <div class="traitsGrid">
+              <div class="traitCard"><span>Kekuatan (Strength):</span> <strong>{{ ind.traits.strength | number:'1.2-2' }}</strong></div>
+              <div class="traitCard"><span>Sosial (Sociability):</span> <strong>{{ ind.traits.sociability | number:'1.2-2' }}</strong></div>
+              <div class="traitCard"><span>Eksplorasi (Exploration):</span> <strong>{{ ind.traits.exploration | number:'1.2-2' }}</strong></div>
+              <div class="traitCard"><span>Kesuburan (Fertility):</span> <strong>{{ ind.traits.fertility | number:'1.2-2' }}</strong></div>
+            </div>
+            <button class="btnToggleGenome" (click)="showGenome = !showGenome">
+              {{ showGenome ? '▲ Sembunyikan Genome' : '▼ Tampilkan Genome Alel' }}
+            </button>
+            <div *ngIf="showGenome" class="genomeBox">
+              <div>Alel Kekuatan: {{ ind.genome.strength | number:'1.3-3' }}</div>
+              <div>Alel Sosial: {{ ind.genome.sociability | number:'1.3-3' }}</div>
+              <div>Alel Eksplorasi: {{ ind.genome.exploration | number:'1.3-3' }}</div>
+              <div>Alel Kesuburan: {{ ind.genome.fertility | number:'1.3-3' }}</div>
+            </div>
+          </div>
+
+          <!-- Social Affiliations -->
+          <div class="sectionBox">
+            <div class="sectionTitle">Afiliasi Sosial & Wilayah</div>
+            <div class="affilRow">
+              <span class="infoKey">Kelompok/Clan:</span>
+              <button *ngIf="ind.groupId" class="btnLink" (click)="selectEntity('clans', ind.groupId)">
+                Lihat Kelompok (ID: {{ ind.groupId }})
+              </button>
+              <span *ngIf="!ind.groupId" class="infoMuted">Tidak bergabung dengan kelompok (Nomad mandiri)</span>
+            </div>
+            <div class="affilRow">
+              <span class="infoKey">Permukiman:</span>
+              <button *ngIf="ind.settlementId" class="btnLink" (click)="selectEntity('settlements', ind.settlementId)">
+                Lihat Permukiman (ID: {{ ind.settlementId }})
+              </button>
+              <span *ngIf="!ind.settlementId" class="infoMuted">Belum menetap di permukiman</span>
+            </div>
+          </div>
+
+          <!-- Quick Family Links -->
+          <div class="sectionBox" *ngIf="selectedFamily as fam">
+            <div class="sectionTitle">Keluarga Terdekat</div>
+            <div class="famLinksGroup">
+              <div>
+                <span class="infoKey">Orang Tua:</span>
+                <span *ngIf="fam.parents.length === 0 && fam.missingParentIds.length === 0" class="infoMuted">Leluhur Awal (Tanpa Orang Tua)</span>
+                <span *ngFor="let p of fam.parents" class="famChip" (click)="selectEntity('people', p.id)">
+                  {{ p.name }} ({{ p.gender === 'male' ? 'Ayah' : 'Ibu' }}) <span class="miniStatus" [class.alive]="p.isAlive">{{ p.isAlive ? '●' : '†' }}</span>
+                </span>
+                <span *ngFor="let mId of fam.missingParentIds" class="famChip missing">
+                  Data Hilang ({{ mId }})
+                </span>
+              </div>
+              <div>
+                <span class="infoKey">Pasangan:</span>
+                <span *ngIf="!fam.partner" class="infoMuted">Belum memiliki pasangan</span>
+                <span *ngIf="fam.partner" class="famChip" (click)="selectEntity('people', fam.partner.id)">
+                  {{ fam.partner.name }} <span class="miniStatus" [class.alive]="fam.partner.isAlive">{{ fam.partner.isAlive ? '●' : '†' }}</span>
+                </span>
+              </div>
+              <div>
+                <span class="infoKey">Anak ({{ fam.children.length }}):</span>
+                <span *ngIf="fam.children.length === 0" class="infoMuted">Belum memiliki keturunan</span>
+                <span *ngFor="let c of fam.children" class="famChip" (click)="selectEntity('people', c.id)">
+                  {{ c.name }} ({{ c.age }}t) <span class="miniStatus" [class.alive]="c.isAlive">{{ c.isAlive ? '●' : '†' }}</span>
+                </span>
+              </div>
+              <div>
+                <span class="infoKey">Saudara Kandung ({{ fam.siblings.length }}):</span>
+                <span *ngIf="fam.siblings.length === 0" class="infoMuted">Tidak ada saudara</span>
+                <span *ngFor="let s of fam.siblings" class="famChip" (click)="selectEntity('people', s.id)">
+                  {{ s.name }} <span class="miniStatus" [class.alive]="s.isAlive">{{ s.isAlive ? '●' : '†' }}</span>
+                </span>
+              </div>
+            </div>
+            <button class="btnViewTree" (click)="switchTab('families', ind.id)">Lihat Family Tree Lengkap →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB: FAMILIES ==================== -->
+    <div *ngIf="activeTab === 'families'" class="tabBody">
+      <div *ngIf="!selectedIndividual" class="emptyNotice">
+        Pilih seorang individu dari tab People untuk melihat garis keturunan dan silsilah keluarga.
+      </div>
+
+      <div *ngIf="selectedIndividual as ind" class="familyView">
+        <div class="familyHeader">
+          <h3>Silsilah Keluarga: {{ ind.name }}</h3>
+          <span class="badgeId">{{ ind.id }}</span>
+          <button class="btnSmall" (click)="switchTab('people', ind.id)">Lihat Profil Individu</button>
+        </div>
+
+        <div *ngIf="selectedFamily as fam" class="treeContainer">
+          <!-- Generation 1: Parents -->
+          <div class="treeLevel">
+            <div class="levelHeader">Orang Tua (Generasi I)</div>
+            <div class="nodeRow">
+              <div *ngIf="fam.parents.length === 0 && fam.missingParentIds.length === 0" class="treeCard none">
+                <em>Leluhur Pertama (Generasi Awal Dunia)</em>
+              </div>
+              <div
+                *ngFor="let p of fam.parents"
+                class="treeCard parentCard"
+                [class.deceased]="!p.isAlive"
+                (click)="selectEntity('families', p.id)"
+              >
+                <div class="treeCardRole">{{ p.gender === 'male' ? 'Ayah' : 'Ibu' }}</div>
+                <div class="treeCardName">{{ p.name }}</div>
+                <div class="treeCardMeta">{{ p.isAlive ? 'Hidup' : 'Meninggal' }} · {{ p.age }}t</div>
+              </div>
+              <div *ngFor="let mId of fam.missingParentIds" class="treeCard missingCard">
+                <div class="treeCardRole">Data Hilang</div>
+                <div class="treeCardName">{{ mId }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="treeConnector">↓</div>
+
+          <!-- Generation 2: Target & Partner -->
+          <div class="treeLevel">
+            <div class="levelHeader">Individu Terpilih & Pasangan (Generasi II)</div>
+            <div class="nodeRow">
+              <div class="treeCard targetCard" [class.deceased]="!ind.isAlive">
+                <div class="treeCardRole">Fokus Silsilah</div>
+                <div class="treeCardName">{{ ind.name }}</div>
+                <div class="treeCardMeta">{{ ind.isAlive ? 'Hidup' : 'Meninggal' }} · {{ ind.age }}t</div>
+              </div>
+              <div
+                *ngIf="fam.partner"
+                class="treeCard partnerCard"
+                [class.deceased]="!fam.partner.isAlive"
+                (click)="selectEntity('families', fam.partner.id)"
+              >
+                <div class="treeCardRole">Pasangan</div>
+                <div class="treeCardName">{{ fam.partner.name }}</div>
+                <div class="treeCardMeta">{{ fam.partner.isAlive ? 'Hidup' : 'Meninggal' }} · {{ fam.partner.age }}t</div>
+              </div>
+              <div *ngIf="!fam.partner" class="treeCard none">
+                <div class="treeCardRole">Pasangan</div>
+                <div class="treeCardName">Belum Ada</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="treeConnector">↓</div>
+
+          <!-- Generation 3: Children -->
+          <div class="treeLevel">
+            <div class="levelHeader">Keturunan / Anak (Generasi III) — Total: {{ fam.children.length }}</div>
+            <div class="nodeRow">
+              <div *ngIf="fam.children.length === 0" class="treeCard none">
+                <em>Belum memiliki keturunan</em>
+              </div>
+              <div
+                *ngFor="let c of fam.children"
+                class="treeCard childCard"
+                [class.deceased]="!c.isAlive"
+                (click)="selectEntity('families', c.id)"
+              >
+                <div class="treeCardRole">{{ c.gender === 'male' ? 'Anak Laki-laki' : 'Anak Perempuan' }}</div>
+                <div class="treeCardName">{{ c.name }}</div>
+                <div class="treeCardMeta">{{ c.isAlive ? 'Hidup' : 'Meninggal' }} · {{ c.age }}t</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Siblings List -->
+          <div class="siblingsSection">
+            <div class="levelHeader">Saudara Sekandung / Se-induk ({{ fam.siblings.length }})</div>
+            <div class="nodeRow">
+              <div *ngIf="fam.siblings.length === 0" class="treeCard none">
+                <em>Tidak memiliki saudara</em>
+              </div>
+              <div
+                *ngFor="let s of fam.siblings"
+                class="treeCard siblingCard"
+                [class.deceased]="!s.isAlive"
+                (click)="selectEntity('families', s.id)"
+              >
+                <div class="treeCardName">{{ s.name }}</div>
+                <div class="treeCardMeta">{{ s.isAlive ? 'Hidup' : 'Meninggal' }} · {{ s.age }}t</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB: CLANS ==================== -->
+    <div *ngIf="activeTab === 'clans'" class="tabBody">
+      <div *ngIf="allGroups.length === 0" class="emptyNotice">
+        Belum ada kelompok sosial atau clan yang terbentuk. Kelompok akan terbentuk otomatis saat individu berkumpul dan berinteraksi.
+      </div>
+
+      <div *ngIf="allGroups.length > 0" class="clansContainer">
+        <div class="clanList">
+          <div
+            *ngFor="let g of allGroups"
+            class="clanRow"
+            [class.selected]="selectedGroup?.id === g.id"
+            (click)="selectEntity('clans', g.id)"
+          >
+            <div class="clanRowHead">
+              <span class="clanName">{{ g.name }}</span>
+              <span class="clanStatus" [class.nomad]="g.status === 'nomad'" [class.settled]="g.status === 'settled'" [class.disbanded]="g.status === 'disbanded'">
+                {{ g.status }}
+              </span>
+            </div>
+            <div class="clanMeta">
+              <span>Anggota Hidup: <strong>{{ getGroupLivingMembers(g.id).length }}</strong>/{{ g.memberIds.length }}</span>
+              <span>Inv: Mkn {{ g.sharedInventory.food }}, Kayu {{ g.sharedInventory.wood }}, Batu {{ g.sharedInventory.stone }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Group Detail -->
+        <div *ngIf="selectedGroup as grp" class="clanDetail">
+          <div class="profileHeader">
+            <div class="profileTitleRow">
+              <h3 class="profileName">{{ grp.name }}</h3>
+              <span class="badgeIdLarge">{{ grp.id }}</span>
+            </div>
+            <div class="profileTags">
+              <span class="badgeStatus" [class.alive]="grp.status !== 'disbanded'" [class.dead]="grp.status === 'disbanded'">
+                Status: {{ grp.status }}
+              </span>
+              <span class="badgeStage">Anggota Hidup: {{ getGroupLivingMembers(grp.id).length }} orang</span>
+            </div>
+          </div>
+
+          <div class="sectionBox">
+            <div class="sectionTitle">Informasi Kelompok</div>
+            <div class="infoGrid">
+              <div>
+                <span class="infoKey">Pemimpin:</span>
+                <span *ngIf="getGroupLeader(grp.leaderId) as ldr" class="linkText" (click)="selectEntity('people', ldr.id)">
+                  {{ ldr.name }} ({{ ldr.id }})
+                </span>
+                <span *ngIf="!grp.leaderId" class="infoMuted">Belum ditentukan</span>
+              </div>
+              <div>
+                <span class="infoKey">Permukiman:</span>
+                <span *ngIf="grp.settlementId" class="linkText" (click)="selectEntity('settlements', grp.settlementId)">
+                  {{ grp.settlementId }}
+                </span>
+                <span *ngIf="!grp.settlementId" class="infoMuted">Nomaden (Tanpa Permukiman)</span>
+              </div>
+              <div><span class="infoKey">Stok Makanan Bersama:</span> {{ grp.sharedInventory.food }} unit</div>
+              <div><span class="infoKey">Stok Kayu Bersama:</span> {{ grp.sharedInventory.wood }} unit</div>
+              <div><span class="infoKey">Stok Batu Bersama:</span> {{ grp.sharedInventory.stone }} unit</div>
+            </div>
+          </div>
+
+          <div class="sectionBox">
+            <div class="sectionTitle">Daftar Anggota ({{ grp.memberIds.length }})</div>
+            <div class="membersGrid">
+              <div
+                *ngFor="let ind of getGroupLivingMembers(grp.id)"
+                class="memberCard"
+                (click)="selectEntity('people', ind.id)"
+              >
+                <span class="memberName">{{ ind.name }}</span>
+                <span class="badgeStage">{{ ind.lifeStage }} ({{ ind.age }}t)</span>
+                <span class="miniStatus alive">● Hidup</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB: SETTLEMENTS ==================== -->
+    <div *ngIf="activeTab === 'settlements'" class="tabBody">
+      <div *ngIf="allSettlements.length === 0" class="emptyNotice">
+        Belum ada pemukiman yang didirikan. Kelompok nomad akan mendirikan pemukiman setelah menemukan lokasi subur dekat sumber air.
+      </div>
+
+      <div *ngIf="allSettlements.length > 0" class="settlementsContainer">
+        <div class="settlementList">
+          <div
+            *ngFor="let s of allSettlements"
+            class="settlementRow"
+            [class.selected]="selectedSettlement?.id === s.id"
+            (click)="selectEntity('settlements', s.id)"
+          >
+            <div class="settleRowHead">
+              <span class="settleName">{{ s.name }}</span>
+              <span class="badgeId">{{ s.id }}</span>
+            </div>
+            <div class="settleMeta">
+              <span>Penduduk: <strong>{{ getSettlementResidents(s.id).length }}</strong> / Kapasitas: {{ s.housingCapacity }}</span>
+              <span>Lokasi: ({{ s.tilePosition.x }}, {{ s.tilePosition.y }})</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Settlement Detail -->
+        <div *ngIf="selectedSettlement as setl" class="settlementDetail">
+          <div class="profileHeader">
+            <div class="profileTitleRow">
+              <h3 class="profileName">{{ setl.name }}</h3>
+              <span class="badgeIdLarge">{{ setl.id }}</span>
+            </div>
+            <div class="profileTags">
+              <span class="badgeStage">Penduduk Hidup: {{ getSettlementResidents(setl.id).length }} orang</span>
+              <span class="badgeStage">Kapasitas Hunian: {{ setl.housingCapacity }}</span>
+              <button class="btnLocate" (click)="onLocate(setl.tilePosition.x, setl.tilePosition.y)">📍 Cari di Peta</button>
+            </div>
+          </div>
+
+          <div class="sectionBox">
+            <div class="sectionTitle">Struktur Permukiman</div>
+            <div class="infoGrid">
+              <div><span class="infoKey">Koordinat:</span> Tile ({{ setl.tilePosition.x }}, {{ setl.tilePosition.y }})</div>
+              <div><span class="infoKey">Kelompok:</span> <span class="linkText" (click)="selectEntity('clans', setl.groupId)">{{ setl.groupId }}</span></div>
+              <div><span class="infoKey">Didirikan Pada:</span> Tick {{ setl.foundedTick }}</div>
+              <div><span class="infoKey">Jumlah Bangunan:</span> {{ setl.buildings.length }} unit</div>
+              <div><span class="infoKey">Kapasitas Storage:</span> {{ setl.storageCapacity }} unit</div>
+            </div>
+          </div>
+
+          <div class="sectionBox">
+            <div class="sectionTitle">Bangunan ({{ setl.buildings.length }})</div>
+            <div *ngIf="setl.buildings.length === 0" class="infoMuted">Belum ada bangunan permanen yang dibangun.</div>
+            <div class="buildingsList">
+              <div *ngFor="let b of setl.buildings" class="buildingCard">
+                <strong>{{ b.type === 'house' ? 'Rumah (House)' : 'Gudang (Storage)' }}</strong>
+                <span>Lokasi: ({{ b.x }}, {{ b.y }}) · Dibangun pada tick {{ b.builtTick }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sectionBox">
+            <div class="sectionTitle">Penduduk Permukiman ({{ getSettlementResidents(setl.id).length }})</div>
+            <div class="membersGrid">
+              <div
+                *ngFor="let ind of getSettlementResidents(setl.id)"
+                class="memberCard"
+                (click)="selectEntity('people', ind.id)"
+              >
+                <span class="memberName">{{ ind.name }}</span>
+                <span class="badgeStage">{{ ind.lifeStage }} ({{ ind.age }}t)</span>
+                <span class="miniStatus alive">● Hidup</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB: HISTORY ==================== -->
+    <div *ngIf="activeTab === 'history'" class="tabBody">
+      <div class="historyHeader">
+        <span class="retentionNotice">
+          Menampilkan {{ filteredEvents.length }} event (Kapasitas log engine: 200 event).
+        </span>
+        <select class="selectFilter" [value]="historyTypeFilter" (change)="onHistoryFilterChange($event)">
+          <option value="all">Semua Tipe Event</option>
+          <option value="birth">Kelahiran (Birth)</option>
+          <option value="death">Kematian (Death)</option>
+          <option value="group">Kelompok/Clan</option>
+          <option value="settlement">Permukiman</option>
+          <option value="building">Pembangunan</option>
+          <option value="resource">Sumber Daya</option>
+        </select>
+      </div>
+
+      <div class="eventTimeline">
+        <div *ngIf="filteredEvents.length === 0" class="emptyNotice">Belum ada event yang tercatat.</div>
+        <div *ngFor="let ev of filteredEvents" class="eventItem">
+          <div class="eventHead">
+            <span class="eventTick">Tick {{ ev.tick }}</span>
+            <span class="eventTypeBadge">{{ ev.type }}</span>
+          </div>
+          <div class="eventMsg">{{ ev.message }}</div>
+          <div *ngIf="ev.entityId || ev.secondaryId" class="eventLinks">
+            <button *ngIf="ev.entityId" class="btnEventLink" (click)="selectEntity('people', ev.entityId)">
+              Lihat {{ ev.entityId }}
+            </button>
+            <button *ngIf="ev.secondaryId" class="btnEventLink" (click)="selectEntity('people', ev.secondaryId)">
+              Lihat {{ ev.secondaryId }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB: WORLD STATS ==================== -->
+    <div *ngIf="activeTab === 'stats'" class="tabBody">
+      <div class="statsGrid">
+        <div class="statCard">
+          <div class="statVal">{{ stats.totalLiving }}</div>
+          <div class="statLabel">Populasi Hidup Saat Ini</div>
+        </div>
+        <div class="statCard">
+          <div class="statVal">{{ stats.births }}</div>
+          <div class="statLabel">Total Kelahiran Kumulatif</div>
+        </div>
+        <div class="statCard">
+          <div class="statVal">{{ stats.deaths }}</div>
+          <div class="statLabel">Total Kematian Kumulatif</div>
+        </div>
+        <div class="statCard">
+          <div class="statVal">{{ stats.groupCount }}</div>
+          <div class="statLabel">Kelompok / Clan Aktif</div>
+        </div>
+        <div class="statCard">
+          <div class="statVal">{{ stats.settlementCount }}</div>
+          <div class="statLabel">Permukiman Didirikan</div>
+        </div>
+      </div>
+
+      <div class="sectionBox">
+        <div class="sectionTitle">Distribusi Demografi Populasi</div>
+        <div class="demoGrid">
+          <div class="demoItem"><span>Anak (Child):</span> <strong>{{ stats.childCount }} orang</strong></div>
+          <div class="demoItem"><span>Dewasa (Adult):</span> <strong>{{ stats.adultCount }} orang</strong></div>
+          <div class="demoItem"><span>Lansia (Elder):</span> <strong>{{ stats.elderCount }} orang</strong></div>
+        </div>
+      </div>
+
+      <div class="sectionBox">
+        <div class="sectionTitle">Rata-rata Kondisi Populasi Hidup</div>
+        <div class="demoGrid">
+          <div class="demoItem">
+            <span>Rata-rata Kesehatan:</span>
+            <strong>{{ stats.totalLiving > 0 ? (stats.avgHealth | number:'1.1-1') : '—' }}</strong>
+          </div>
+          <div class="demoItem">
+            <span>Rata-rata Kelaparan:</span>
+            <strong>{{ stats.totalLiving > 0 ? (stats.avgHunger | number:'1.1-1') : '—' }}</strong>
+          </div>
+          <div class="demoItem">
+            <span>Rata-rata Energi:</span>
+            <strong>{{ stats.totalLiving > 0 ? (stats.avgEnergy | number:'1.1-1') : '—' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="sectionBox">
+        <div class="sectionTitle">Total Stok Sumber Daya Dunia</div>
+        <div class="demoGrid">
+          <div class="demoItem"><span>Total Makanan (Tiles):</span> <strong>{{ stats.totalWorldFood | number:'1.0-0' }} unit</strong></div>
+          <div class="demoItem"><span>Total Kayu (Tiles):</span> <strong>{{ stats.totalWorldWood | number:'1.0-0' }} unit</strong></div>
+          <div class="demoItem"><span>Total Batu (Tiles):</span> <strong>{{ stats.totalWorldStone | number:'1.0-0' }} unit</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

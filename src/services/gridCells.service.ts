@@ -25,6 +25,7 @@ export class worldGridCells {
 
   mapOfTiles: Record<string, { terrain: TerrainId }> = {};
   private mapBuilt = false;
+  onTileChange?: (tx: number, ty: number, terrain: TerrainId) => void;
 
   initWorldGrid(overWorld: OverWorld): void {
     this.overWorld = overWorld;
@@ -124,6 +125,7 @@ export class worldGridCells {
     const key = `x${tx}y${ty}`;
     if (!this.mapOfTiles[key]) this.mapOfTiles[key] = { terrain: DEFAULT_TERRAIN };
     this.mapOfTiles[key].terrain = terrain;
+    if (this.onTileChange) this.onTileChange(tx, ty, terrain);
     this.renderAround(overWorld, tx, ty, this.tileset.getWaterFrame());
   }
 
@@ -133,6 +135,7 @@ export class worldGridCells {
     const key = `x${tx}y${ty}`;
     if (!this.mapOfTiles[key]) this.mapOfTiles[key] = { terrain: DEFAULT_TERRAIN };
     this.mapOfTiles[key].terrain = ERASER_TERRAIN;
+    if (this.onTileChange) this.onTileChange(tx, ty, ERASER_TERRAIN);
     this.renderAround(overWorld, tx, ty, this.tileset.getWaterFrame());
   }
 
