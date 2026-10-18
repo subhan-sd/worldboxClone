@@ -3,14 +3,16 @@ import { OverWorld, OverWorldNpcConfig} from '../../classes/overWorld';
 import { NpcService } from '../../services/npc.service';
 import { TestDrawing } from '../../services/testDrawing.service';
 import { worldGridCells } from '../../services/gridCells.service';
+import { SimulationBridgeService } from '../../services/simulation-bridge.service';
 import { TerrainId, TERRAIN_LIST, DEFAULT_TERRAIN } from '../../models/terrain.model';
 import { CANVAS_SIZE } from '../../models/world.config';
-import { isPlatformBrowser, NgFor } from '@angular/common';
+import { isPlatformBrowser, NgFor, CommonModule } from '@angular/common';
+import { InspectorComponent, type InspectorTab } from '../inspector/inspector.component';
 
 @Component({
   selector: 'app-world-canvas',
   standalone: true,
-  imports: [NgFor],
+  imports: [NgFor, CommonModule, InspectorComponent],
   templateUrl: './world-canvas.component.html',
   styleUrls: ['./world-canvas.component.css'] // Fixed typo: styleUrl to styleUrls
 })
@@ -42,6 +44,10 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
   terrains = TERRAIN_LIST;
   currentTerrain: TerrainId = DEFAULT_TERRAIN;
 
+  isInspectorOpen: boolean = false;
+  inspectorActiveTab: InspectorTab = 'people';
+  inspectorSelectedId?: string;
+
   private isBrowser: boolean;
   private waterInterval?: ReturnType<typeof setInterval>;
 
@@ -53,6 +59,7 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
     private drawing: TestDrawing,
     private worldGrid : worldGridCells,
     private renderer: Renderer2,
+    private simBridge: SimulationBridgeService,
     @Inject(PLATFORM_ID) private platformId: Object
   ){this.isBrowser = isPlatformBrowser(this.platformId);}
 
@@ -64,6 +71,7 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
     this.initializeOverWorld();
     this.windowDimensions()
     this.startGameLoop();
+    this.simBridge.start();
     window.addEventListener('wheel', this.handleWheelEvent, { passive: false });
     window.addEventListener('gesturestart', this.handleGestureEvent, { passive: false });
     window.addEventListener('gesturechange', this.handleGestureEvent, { passive: false });
@@ -74,6 +82,7 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
 
   ngOnDestroy() {
     if (this.isBrowser) {
+      this.simBridge.pause();
       window.removeEventListener('wheel', this.handleWheelEvent);
       window.removeEventListener('gesturestart', this.handleGestureEvent);
       window.removeEventListener('gesturechange', this.handleGestureEvent);
@@ -202,12 +211,10 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
 
   startGameLoop() { 
     const gameLoop = () => {
-      setTimeout(() => {
-        this.npcService.render(this.overWorld);
-        requestAnimationFrame(() => gameLoop());
-      }, 41);
+      this.npcService.render(this.overWorld);
+      requestAnimationFrame(() => gameLoop());
     };
-    gameLoop();
+    requestAnimationFrame(() => gameLoop());
   }
 
   windowDimensions(){
@@ -304,5 +311,52 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
 
   getCurrentScale(){
     return this.scaleValue;
+  }
+
+  get simRunning(): boolean {
+    return this.simBridge.getIsRunning();
+  }
+
+  get worldTime() {
+    return this.simBridge.getWorldTime();
+  }
+
+  openInspector(tab: InspectorTab) {
+    if (this.isInspectorOpen && this.inspectorActiveTab === tab) {
+      this.isInspectorOpen = false;
+      return;
+    }
+    this.inspectorActiveTab = tab;
+    this.isInspectorOpen = true;
+  }
+
+  closeInspector() {
+    this.isInspectorOpen = false;
+  }
+
+  onInspectorTabChange(tab: InspectorTab) {
+    this.inspectorActiveTab = tab;
+  }
+
+  onLocateEntity(coords: { x: number; y: number }) {
+    if (!this.isBrowser) return;
+    const targetPxX = coords.x * 10;
+    const targetPxY = coords.y * 10;
+    const centerPx = CANVAS_SIZE / 2;
+
+    const offsetX = (centerPx - targetPxX) * this.scaleValue;
+    const offsetY = (centerPx - targetPxY) * this.scaleValue;
+
+    this.left = 50 + (offsetX / this.windowWidth) * 100;
+    this.top = 50 + (offsetY / this.windowHeight) * 100;
+    this.scaleCanvasAll();
+  }
+
+  toggleSimulation() {
+    this.simBridge.toggle();
+  }
+
+  stepSimulation() {
+    this.simBridge.step();
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { TERRAINS, TerrainId, WATER_FRAMES, WATER_FRAME_MS } from '../models/terrain.model';
+import { TERRAINS, TerrainId, TileObjectType, WATER_FRAMES, WATER_FRAME_MS } from '../models/terrain.model';
 
 type Side = 'N' | 'E' | 'S' | 'W';
 type Corner = 'NE' | 'SE' | 'SW' | 'NW';
@@ -118,5 +118,92 @@ export class TilesetService {
 
     ctx.fillStyle = grad;
     ctx.fillRect(dx, dy, s, s);
+  }
+
+  drawObject(ctx: CanvasRenderingContext2D, objectType: TileObjectType, dx: number, dy: number): void {
+    switch (objectType) {
+      case 'tree':
+        // Shadow at base
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(dx + 3, dy + 8, 4, 1);
+        // Trunk
+        ctx.fillStyle = '#5c3a21';
+        ctx.fillRect(dx + 4, dy + 6, 2, 4);
+        // Canopy (Leaves)
+        ctx.fillStyle = '#2d6a2a';
+        ctx.fillRect(dx + 2, dy + 1, 6, 6);
+        ctx.fillStyle = '#408c3b';
+        ctx.fillRect(dx + 3, dy + 1, 4, 5);
+        ctx.fillRect(dx + 2, dy + 2, 6, 3);
+        // Leaf highlights
+        ctx.fillStyle = '#6ab04c';
+        ctx.fillRect(dx + 3, dy + 2, 2, 2);
+        break;
+
+      case 'food':
+        // Bush foliage
+        ctx.fillStyle = '#1e5f1b';
+        ctx.fillRect(dx + 2, dy + 4, 6, 5);
+        ctx.fillStyle = '#2ed573';
+        ctx.fillRect(dx + 3, dy + 4, 4, 4);
+        ctx.fillRect(dx + 2, dy + 5, 6, 2);
+        // Berries
+        ctx.fillStyle = '#ff4757';
+        ctx.fillRect(dx + 3, dy + 5, 1, 1);
+        ctx.fillRect(dx + 6, dy + 5, 1, 1);
+        ctx.fillStyle = '#ffa502';
+        ctx.fillRect(dx + 4, dy + 6, 1, 1);
+        ctx.fillRect(dx + 5, dy + 5, 1, 1);
+        break;
+
+      case 'rock':
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillRect(dx + 2, dy + 7, 7, 2);
+        // Main rock
+        ctx.fillStyle = '#57606f';
+        ctx.fillRect(dx + 2, dy + 3, 6, 5);
+        ctx.fillRect(dx + 3, dy + 2, 4, 6);
+        // Midtone
+        ctx.fillStyle = '#747d8c';
+        ctx.fillRect(dx + 3, dy + 3, 4, 4);
+        // Highlight
+        ctx.fillStyle = '#a4b0be';
+        ctx.fillRect(dx + 3, dy + 3, 2, 1);
+        ctx.fillRect(dx + 5, dy + 4, 1, 2);
+        break;
+
+      case 'house':
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(dx + 1, dy + 8, 8, 2);
+        // Wooden walls
+        ctx.fillStyle = '#d35400';
+        ctx.fillRect(dx + 2, dy + 4, 6, 5);
+        // Roof
+        ctx.fillStyle = '#b71540';
+        ctx.fillRect(dx + 2, dy + 2, 6, 2);
+        ctx.fillRect(dx + 3, dy + 1, 4, 2);
+        // Door & window
+        ctx.fillStyle = '#2f3542';
+        ctx.fillRect(dx + 4, dy + 6, 2, 3);
+        ctx.fillStyle = '#f6e58d';
+        ctx.fillRect(dx + 6, dy + 5, 1, 1);
+        break;
+
+      case 'storage':
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(dx + 1, dy + 8, 8, 2);
+        // Crate / barn body
+        ctx.fillStyle = '#8e44ad';
+        ctx.fillRect(dx + 2, dy + 3, 6, 6);
+        ctx.fillStyle = '#9b59b6';
+        ctx.fillRect(dx + 3, dy + 4, 4, 4);
+        // Lock / latch
+        ctx.fillStyle = '#f1c40f';
+        ctx.fillRect(dx + 4, dy + 5, 2, 2);
+        break;
+    }
   }
 }

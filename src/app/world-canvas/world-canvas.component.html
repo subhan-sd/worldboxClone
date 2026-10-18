@@ -1,9 +1,41 @@
 <div class="canvasContainer" [class.debug]="debug">
-    <canvas #gameCanvasDraw class="gameCanvasDraw"></canvas>
-    <canvas #gameCanvas class="gameCanvas"></canvas>
+  <canvas #gameCanvasDraw class="gameCanvasDraw"></canvas>
+  <canvas #gameCanvas class="gameCanvas"></canvas>
+</div>
+
+<!-- Top Inspector Toolbar & World Time -->
+<div class="inspectorToolbar" (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+  <!-- World Time Indicator (FR-WT-01 .. FR-WT-05) -->
+  <div class="worldTimeBadge" [title]="worldTime.calendarNote">
+    <span class="timeIcon">🕒</span>
+    <span class="timeText">{{ worldTime.displayString }}</span>
+    <span class="timeStatus" [class.running]="simRunning">{{ simRunning ? 'Running' : 'Paused' }}</span>
   </div>
 
-<div class="toolbar">
+  <!-- Inspector Navigation -->
+  <div class="navGroup">
+    <button class="navBtn" [class.active]="isInspectorOpen && inspectorActiveTab === 'people'" (click)="openInspector('people')">People</button>
+    <button class="navBtn" [class.active]="isInspectorOpen && inspectorActiveTab === 'families'" (click)="openInspector('families')">Families</button>
+    <button class="navBtn" [class.active]="isInspectorOpen && inspectorActiveTab === 'clans'" (click)="openInspector('clans')">Clans</button>
+    <button class="navBtn" [class.active]="isInspectorOpen && inspectorActiveTab === 'settlements'" (click)="openInspector('settlements')">Settlements</button>
+    <button class="navBtn" [class.active]="isInspectorOpen && inspectorActiveTab === 'history'" (click)="openInspector('history')">History</button>
+    <button class="navBtn" [class.active]="isInspectorOpen && inspectorActiveTab === 'stats'" (click)="openInspector('stats')">World Stats</button>
+  </div>
+</div>
+
+<!-- Floating Inspector Panel Overlay -->
+<div *ngIf="isInspectorOpen" class="inspectorOverlay" (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+  <app-inspector
+    [activeTab]="inspectorActiveTab"
+    [selectedId]="inspectorSelectedId"
+    (tabChange)="onInspectorTabChange($event)"
+    (locate)="onLocateEntity($event)"
+    (close)="closeInspector()"
+  ></app-inspector>
+</div>
+
+<!-- Controls Toolbar (Canvas & Simulation Controls) -->
+<div class="toolbar" (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()">
   <div class="toolGroup">
     <button
       *ngFor="let terrain of terrains"
@@ -28,5 +60,10 @@
 
   <div class="toolGroup">
     <button class="tool" [class.active]="debug" (click)="toggleDebug()">Debug</button>
+  </div>
+
+  <div class="toolGroup">
+    <button class="tool" [class.active]="simRunning" (click)="toggleSimulation()">{{ simRunning ? 'Pause' : 'Play' }}</button>
+    <button class="tool" (click)="stepSimulation()" title="Step 1 Tick">Step</button>
   </div>
 </div>
