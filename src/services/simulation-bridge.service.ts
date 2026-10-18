@@ -3,7 +3,7 @@ import { SimulationEngine } from '../simulation/engine/simulation-engine';
 import { worldGridCells } from './gridCells.service';
 import { NpcService } from './npc.service';
 import { NPC, NPCState } from '../models/npc.model';
-import { TerrainId, DEFAULT_TERRAIN } from '../models/terrain.model';
+import { TerrainId, TileObjectType, DEFAULT_TERRAIN } from '../models/terrain.model';
 import type {
   SimulationStatistics,
   SimulationEvent,
@@ -54,14 +54,28 @@ export class SimulationBridgeService {
   initWorld(seed: number = 42): void {
     this.engine.init(seed);
 
-    // Find good starting fertile locations for Adam and Hawa
+    // Find closest traversable fertile land tile to map center (32, 32)
     const grid = this.engine.getGrid();
-    const fertileTiles = grid
-      .getAllTiles()
-      .filter((t) => t.traversable && t.terrain === 'soil');
-    const startTile = fertileTiles.length > 0 ? fertileTiles[0] : grid.get(32, 32)!;
+    const centerX = Math.floor(grid.width / 2);
+    const centerY = Math.floor(grid.height / 2);
 
-    // Spawn Adam & Hawa
+    const candidates = grid
+      .getAllTiles()
+      .filter((t) => t.traversable && (t.terrain === 'soil' || t.terrain === 'grass'));
+
+    candidates.sort((a, b) => {
+      const distA = (a.x - centerX) ** 2 + (a.y - centerY) ** 2;
+      const distB = (b.x - centerX) ** 2 + (b.y - centerY) ** 2;
+      return distA - distB;
+    });
+
+    const startTile = candidates[0] || grid.get(centerX, centerY)!;
+    const neighbors = grid.getNeighbors(startTile.x, startTile.y, false).filter((t) => t.traversable);
+    const hawaTile = neighbors.length > 0
+      ? neighbors[0]
+      : { x: Math.min(grid.width - 1, startTile.x + 1), y: startTile.y };
+
+    // Spawn Adam & Hawa at center
     this.engine.spawnIndividual({
       name: 'Adam',
       gender: 'male',
@@ -73,13 +87,11 @@ export class SimulationBridgeService {
       genome: { strength: 0.8, sociability: 0.7, exploration: 0.7, fertility: 0.8 },
     });
 
-    const hawaX = Math.min(63, startTile.x + 1);
-    const hawaY = startTile.y;
     this.engine.spawnIndividual({
       name: 'Hawa',
       gender: 'female',
-      x: hawaX,
-      y: hawaY,
+      x: hawaTile.x,
+      y: hawaTile.y,
       age: 20,
       hunger: 15,
       energy: 100,
@@ -91,7 +103,7 @@ export class SimulationBridgeService {
   }
 
   /**
-   * Synchronizes simulation terrain into Angular's worldGridCells display dictionary.
+   * Synchronizes simulation terrain and resource/building objects into worldGridCells display dictionary.
    */
   syncTerrainToGridCells(): void {
     const grid = this.engine.getGrid();
@@ -106,17 +118,63 @@ export class SimulationBridgeService {
       else if (t.terrain === 'sand') displayTerrain = 'sand';
       else if (t.terrain === 'rock') displayTerrain = 'soil';
 
-      this.gridCells.mapOfTiles[key] = { terrain: displayTerrain };
+      const objectType = this.deriveTileObjectType(t);
+      this.gridCells.mapOfTiles[key] = { terrain: displayTerrain, objectType };
     }
   }
 
   /**
-   * Synchronizes simulated individuals into NpcService's listOfNpc for rendering.
+   * Checks for resource/building/terrain changes and redraws only dirty tiles.
+   */
+  syncDirtyTilesToGridCells(): void {
+    const grid = this.engine.getGrid();
+    const tiles = grid.getAllTiles();
+    for (let i = 0; i < tiles.length; i++) {
+      const t = tiles[i];
+      const key = `x${t.x}y${t.y}`;
+      const prev = this.gridCells.mapOfTiles[key];
+
+      let displayTerrain: TerrainId = 'grass';
+      if (t.terrain === 'water') displayTerrain = 'water';
+      else if (t.terrain === 'soil') displayTerrain = 'soil';
+      else if (t.terrain === 'sand') displayTerrain = 'sand';
+      else if (t.terrain === 'rock') displayTerrain = 'soil';
+
+      const newObj = this.deriveTileObjectType(t);
+      if (!prev || prev.terrain !== displayTerrain || prev.objectType !== newObj) {
+        this.gridCells.updateTile(t.x, t.y, displayTerrain, newObj);
+      }
+    }
+  }
+
+  /**
+   * Derives visual object overlay for trees, berry bushes, rocks, or buildings.
+   */
+  deriveTileObjectType(t: any): TileObjectType | undefined {
+    if (t.building?.type === 'house') return 'house';
+    if (t.building?.type === 'storage') return 'storage';
+    if (t.terrain === 'rock' || t.resources.stone >= 20) return 'rock';
+    if (t.terrain === 'soil' && t.resources.food >= 4) return 'food';
+    if (t.terrain === 'grass') {
+      if ((t.x * 7 + t.y * 13) % 5 === 0 && t.resources.food >= 4) return 'food';
+      if ((t.x * 11 + t.y * 3) % 3 === 0 && t.resources.wood >= 5) return 'tree';
+    }
+    return undefined;
+  }
+
+  /**
+   * Synchronizes simulated individuals into NpcService's listOfNpc with smooth interpolation.
    */
   syncIndividualsToNpcList(): void {
     const living = Array.from(this.engine.individuals.values()).filter((i) => i.isAlive);
-    const viewNpcs: NPC[] = [];
+    const existingNpcMap = new Map<string, NPC>();
+    for (const npc of this.npcService.listOfNpc) {
+      if (npc.playerID) {
+        existingNpcMap.set(npc.playerID, npc);
+      }
+    }
 
+    const updatedNpcs: NPC[] = [];
     const maleSprites = [
       '../../assets/characters/npcs/adam.png',
       '../../assets/characters/npcs/male_1.png',
@@ -132,27 +190,80 @@ export class SimulationBridgeService {
       '../../assets/characters/npcs/female_4.png',
     ];
 
+    const now = performance.now();
+
     for (let i = 0; i < living.length; i++) {
       const ind = living[i];
+      const existing = existingNpcMap.get(ind.id);
       const isMale = ind.gender === 'male';
       const sprites = isMale ? maleSprites : femaleSprites;
       const spriteIdx = Math.abs(this.hashString(ind.id)) % sprites.length;
       const spriteUrl = sprites[spriteIdx];
 
-      const npc = new NPC(
-        ind.x,
-        ind.y,
-        i === 0, // Adam is playable if keyboard controls used
-        ind.currentGoal === 'idle' ? NPCState.Idle : NPCState.Wandering,
-        ind.gender,
-        ind.name,
-        spriteUrl
-      );
-      npc.playerID = ind.id;
-      viewNpcs.push(npc);
+      if (existing) {
+        // Step transition: interpolate smoothly from current target to new coordinates
+        if (ind.x !== existing.targetX || ind.y !== existing.targetY) {
+          const dx = ind.x - existing.targetX;
+          const dy = ind.y - existing.targetY;
+          existing.startX = existing.targetX;
+          existing.startY = existing.targetY;
+          existing.targetX = ind.x;
+          existing.targetY = ind.y;
+          existing.stepStartTime = now;
+          existing.stepDuration = this.tickIntervalMs;
+          if (Math.abs(dx) >= Math.abs(dy)) {
+            existing.currentDirection = dx > 0 ? 'right' : 'left';
+          } else {
+            existing.currentDirection = dy > 0 ? 'down' : 'up';
+          }
+        }
+        existing.lifeStage = ind.lifeStage;
+        existing.age = ind.age;
+        existing.currentGoal = ind.currentGoal;
+        if (ind.lifeStage === 'child') {
+          existing.offsetX = 4;
+          existing.offsetY = 3;
+        } else {
+          existing.offsetX = 0;
+          existing.offsetY = 0;
+        }
+        updatedNpcs.push(existing);
+      } else {
+        // Brand new NPC (spawned or initial world setup)
+        const isPlayable = i === 0 && ind.name === 'Adam';
+        const npc = new NPC(
+          ind.x,
+          ind.y,
+          isPlayable,
+          NPCState.Idle,
+          ind.gender,
+          ind.name,
+          spriteUrl
+        );
+        npc.playerID = ind.id;
+        npc.simulated = true;
+        npc.lifeStage = ind.lifeStage;
+        npc.age = ind.age;
+        npc.currentGoal = ind.currentGoal;
+        npc.startX = ind.x;
+        npc.startY = ind.y;
+        npc.targetX = ind.x;
+        npc.targetY = ind.y;
+        npc.currentDisplayX = ind.x * 10;
+        npc.currentDisplayY = ind.y * 10;
+        npc.stepStartTime = now;
+        npc.stepDuration = this.tickIntervalMs;
+        if (ind.lifeStage === 'child') {
+          npc.offsetX = 4;
+          npc.offsetY = 3;
+        }
+        updatedNpcs.push(npc);
+      }
     }
 
-    this.npcService.listOfNpc = viewNpcs;
+    // Depth sort so entities with higher Y coordinates are rendered in front
+    updatedNpcs.sort((a, b) => (a.targetY + a.offsetY) - (b.targetY + b.offsetY));
+    this.npcService.listOfNpc = updatedNpcs;
   }
 
   private hashString(str: string): number {
@@ -169,6 +280,7 @@ export class SimulationBridgeService {
    */
   step(): void {
     this.engine.tick();
+    this.syncDirtyTilesToGridCells();
     this.syncIndividualsToNpcList();
   }
 
@@ -323,11 +435,25 @@ export class SimulationBridgeService {
       tile.terrain = terrain;
       tile.traversable = terrain !== 'water';
       if (terrain === 'water') {
-        tile.resources.food = 5;
+        tile.resources.food = 0;
         tile.resources.wood = 0;
         tile.resources.stone = 0;
+      } else if (terrain === 'soil') {
+        tile.resources.food = 10;
+        tile.resources.wood = 4;
+        tile.resources.stone = 1;
+      } else if (terrain === 'grass') {
+        tile.resources.food = 6;
+        tile.resources.wood = 10;
+        tile.resources.stone = 2;
+      } else if (terrain === 'sand') {
+        tile.resources.food = 0;
+        tile.resources.wood = 0;
+        tile.resources.stone = 1;
       }
       grid.recalculateWaterAccess();
+      const obj = this.deriveTileObjectType(tile);
+      this.gridCells.updateTile(x, y, terrain, obj);
     }
   }
 }

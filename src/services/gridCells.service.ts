@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { OverWorld } from '../classes/overWorld';
 import { TilesetService } from './tileset.service';
-import { TerrainId, TERRAINS, DEFAULT_TERRAIN, ERASER_TERRAIN } from '../models/terrain.model';
+import { TerrainId, TileObjectType, TERRAINS, DEFAULT_TERRAIN, ERASER_TERRAIN } from '../models/terrain.model';
 import { TILE_SIZE, CANVAS_SIZE } from '../models/world.config';
 
 @Injectable({
@@ -23,7 +23,7 @@ export class worldGridCells {
   numHorizontalTiles = this.canvasWidth / this.L;
   numVerticalTiles = this.canvasHeight / this.H;
 
-  mapOfTiles: Record<string, { terrain: TerrainId }> = {};
+  mapOfTiles: Record<string, { terrain: TerrainId; objectType?: TileObjectType }> = {};
   private mapBuilt = false;
   onTileChange?: (tx: number, ty: number, terrain: TerrainId) => void;
 
@@ -89,9 +89,26 @@ export class worldGridCells {
       if ((nb === 'water') !== isWater) this.tileset.drawShoreCorner(ctx, corner, dx, dy, isWater);
     }
 
+    const tileObj = this.mapOfTiles[`x${tx}y${ty}`];
+    if (tileObj?.objectType) {
+      this.tileset.drawObject(ctx, tileObj.objectType, dx, dy);
+    }
+
     if (this.displayGrid) {
       ctx.strokeStyle = 'rgba(0,0,0,0.2)';
       ctx.strokeRect(dx + 0.5, dy + 0.5, s - 1, s - 1);
+    }
+  }
+
+  updateTile(tx: number, ty: number, terrain: TerrainId, objectType?: TileObjectType): void {
+    const key = `x${tx}y${ty}`;
+    const current = this.mapOfTiles[key];
+    if (current && current.terrain === terrain && current.objectType === objectType) {
+      return;
+    }
+    this.mapOfTiles[key] = { terrain, objectType };
+    if (this.overWorld) {
+      this.renderTile(this.overWorld, tx, ty, this.tileset.getWaterFrame());
     }
   }
 

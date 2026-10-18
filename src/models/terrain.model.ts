@@ -1,4 +1,5 @@
 export type TerrainId = 'soil' | 'grass' | 'sand' | 'water';
+export type TileObjectType = 'tree' | 'food' | 'rock' | 'house' | 'storage';
 
 export interface TerrainDef {
   id: TerrainId;

@@ -380,3 +380,167 @@ test('Inspector: Locate entity calculates correct canvas pan offsets', () => {
   assert.ok(origin.left > 50);
   assert.ok(origin.top > 50);
 });
+
+test('NPC & World: Child lifeStage receives smaller scale and distinct visual offset', () => {
+  function getVisualConfig(lifeStage: 'child' | 'adult' | 'elder') {
+    const isChild = lifeStage === 'child';
+    const scale = isChild ? 0.55 : 1.0;
+    const offsetX = isChild ? 4 : 0;
+    const offsetY = isChild ? 3 : 0;
+    const drawWidth = 64 * scale;
+    const drawHeight = 64 * scale;
+    return { scale, offsetX, offsetY, drawWidth, drawHeight };
+  }
+
+  const childCfg = getVisualConfig('child');
+  const adultCfg = getVisualConfig('adult');
+
+  assert.strictEqual(childCfg.scale, 0.55);
+  assert.strictEqual(childCfg.drawWidth, 35.2);
+  assert.ok(childCfg.offsetX > 0, 'Child must have offset so it does not overlap mother');
+  assert.ok(childCfg.offsetY > 0, 'Child must have vertical offset');
+
+  assert.strictEqual(adultCfg.scale, 1.0);
+  assert.strictEqual(adultCfg.drawWidth, 64);
+  assert.strictEqual(adultCfg.offsetX, 0);
+  assert.strictEqual(adultCfg.offsetY, 0);
+});
+
+test('NPC & World: Direction and step interpolation accurately reflect movement goal', () => {
+  function deriveDirection(fromX: number, fromY: number, toX: number, toY: number): string {
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      return dx > 0 ? 'right' : 'left';
+    } else {
+      return dy > 0 ? 'down' : 'up';
+    }
+  }
+
+  assert.strictEqual(deriveDirection(10, 10, 11, 10), 'right');
+  assert.strictEqual(deriveDirection(10, 10, 9, 10), 'left');
+  assert.strictEqual(deriveDirection(10, 10, 10, 11), 'down');
+  assert.strictEqual(deriveDirection(10, 10, 10, 9), 'up');
+
+  // Interpolation progress bounded [0, 1]
+  function interpolate(startX: number, targetX: number, elapsedMs: number, durationMs: number): number {
+    const progress = Math.min(1, Math.max(0, elapsedMs / durationMs));
+    return startX + (targetX - startX) * progress;
+  }
+
+  assert.strictEqual(interpolate(10, 20, 0, 600), 10);
+  assert.strictEqual(interpolate(10, 20, 300, 600), 15);
+  assert.strictEqual(interpolate(10, 20, 600, 600), 20);
+  assert.strictEqual(interpolate(10, 20, 1200, 600), 20);
+});
+
+test('NPC & World: Resource and building derivation identifies objects correctly', () => {
+  function deriveTileObject(t: {
+    terrain: string;
+    resources: { food: number; wood: number; stone: number };
+    building?: { type: string };
+    x: number;
+    y: number;
+  }): string | undefined {
+    if (t.building?.type === 'house') return 'house';
+    if (t.building?.type === 'storage') return 'storage';
+    if (t.terrain === 'rock' || t.resources.stone >= 20) return 'rock';
+    if (t.terrain === 'soil' && t.resources.food >= 4) return 'food';
+    if (t.terrain === 'grass') {
+      if ((t.x * 7 + t.y * 13) % 5 === 0 && t.resources.food >= 4) return 'food';
+      if ((t.x * 11 + t.y * 3) % 3 === 0 && t.resources.wood >= 5) return 'tree';
+    }
+    return undefined;
+  }
+
+  // House on tile
+  assert.strictEqual(
+    deriveTileObject({ terrain: 'grass', resources: { food: 0, wood: 0, stone: 0 }, building: { type: 'house' }, x: 5, y: 5 }),
+    'house'
+  );
+
+  // Storage on tile
+  assert.strictEqual(
+    deriveTileObject({ terrain: 'grass', resources: { food: 0, wood: 0, stone: 0 }, building: { type: 'storage' }, x: 5, y: 5 }),
+    'storage'
+  );
+
+  // Rock terrain
+  assert.strictEqual(
+    deriveTileObject({ terrain: 'rock', resources: { food: 0, wood: 0, stone: 25 }, x: 2, y: 2 }),
+    'rock'
+  );
+
+  // Soil with food
+  assert.strictEqual(
+    deriveTileObject({ terrain: 'soil', resources: { food: 10, wood: 0, stone: 0 }, x: 10, y: 10 }),
+    'food'
+  );
+
+  // Water has no resource objects
+  assert.strictEqual(
+    deriveTileObject({ terrain: 'water', resources: { food: 0, wood: 0, stone: 0 }, x: 0, y: 0 }),
+    undefined
+  );
+});
+
+test('NPC & World: Starter individuals spawn centered near (32, 32)', () => {
+  const engine = new SimulationEngine(42);
+  const grid = engine.getGrid();
+  const centerX = Math.floor(grid.width / 2); // 32
+  const centerY = Math.floor(grid.height / 2); // 32
+
+  const candidates = grid
+    .getAllTiles()
+    .filter((t) => t.traversable && (t.terrain === 'soil' || t.terrain === 'grass'));
+
+  candidates.sort((a, b) => {
+    const distA = (a.x - centerX) ** 2 + (a.y - centerY) ** 2;
+    const distB = (b.x - centerX) ** 2 + (b.y - centerY) ** 2;
+    return distA - distB;
+  });
+
+  const startTile = candidates[0];
+  assert.ok(startTile, 'Must find traversable fertile tile near center');
+  assert.ok(Math.abs(startTile.x - centerX) <= 5, 'Must be within 5 tiles of center X');
+  assert.ok(Math.abs(startTile.y - centerY) <= 5, 'Must be within 5 tiles of center Y');
+});
+
+test('NPC & World: Multi-tile exploration persists destination until reached', () => {
+  const engine = new SimulationEngine(505);
+  const grid = engine.getGrid();
+
+  // Create clear fertile path from (30, 30) to (34, 30)
+  for (let x = 28; x <= 36; x++) {
+    const t = grid.get(x, 30)!;
+    t.terrain = 'grass';
+    t.traversable = true;
+    t.resources.food = 10;
+  }
+
+  // Adult with low hunger, high energy, active cooldown (so reproduction and hunger do not override)
+  const ind = engine.spawnIndividual({
+    x: 30,
+    y: 30,
+    age: 25,
+    hunger: 10,
+    energy: 100,
+    reproductionCooldown: 50,
+  });
+
+  // Set an active explore target 4 tiles away
+  ind.currentGoal = 'explore';
+  ind.currentAction = 'move';
+  ind.targetTile = { x: 34, y: 30 };
+
+  // Step engine: individual should step from 30 -> 31 -> 32 -> 33 -> 34
+  for (let step = 1; step <= 4; step++) {
+    engine.tick();
+    assert.strictEqual(ind.currentGoal, 'explore', `Goal must remain explore at step ${step}`);
+    assert.strictEqual(ind.targetTile?.x, 34, `Target X must remain 34 at step ${step}`);
+  }
+
+  // Arrived at (34, 30)
+  assert.strictEqual(ind.x, 34);
+  assert.strictEqual(ind.y, 30);
+});

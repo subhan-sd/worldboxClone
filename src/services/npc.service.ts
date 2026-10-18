@@ -255,62 +255,85 @@ getDeltaForDirection(direction: string): [number, number] {
 
   chosenNpc !: NPC
   render(overWorld : OverWorld) { 
+    overWorld.clearCanvas();
+    const now = performance.now();
+
     for(let i = 0; i < this.listOfNpc.length; i++){
       let npc = this.listOfNpc[i];
-      
-      if(!npc.isMoving){
-        let lengthOfMovementList = npc.movementQueue.length ;
-        if(lengthOfMovementList > 0){
-          this.movementOfNPC(npc.movementQueue[lengthOfMovementList - 1], npc);
-          npc.movementQueue.pop()
-        }
-      }
 
+      let currentDisplayX = 0;
+      let currentDisplayY = 0;
       const animPattern = this.npcMovingIndex[npc.currentDirection] || this.npcMovingIndex['down'];
-      if(npc.frameIndex >= animPattern.length - 1){
-        npc.isMoving = false;
-        npc.isMovingY = false;
-        npc.isMovingX = false;
-        npc.frameIndex = 0;
-      }else{
-        if(npc.isMoving){
-          npc.frameIndex++;
+
+      if (npc.simulated) {
+        // Living World simulation mode: goal-driven smooth movement interpolation
+        const elapsed = now - (npc.stepStartTime || now);
+        const duration = Math.max(100, npc.stepDuration || 600);
+        const progress = Math.min(1, Math.max(0, elapsed / duration));
+
+        const isStepping = (npc.startX !== npc.targetX || npc.startY !== npc.targetY) && progress < 1;
+        npc.isMoving = isStepping;
+
+        currentDisplayX = (npc.startX + (npc.targetX - npc.startX) * progress) * 10 + (npc.offsetX || 0);
+        currentDisplayY = (npc.startY + (npc.targetY - npc.startY) * progress) * 10 + (npc.offsetY || 0);
+        npc.currentDisplayX = currentDisplayX;
+        npc.currentDisplayY = currentDisplayY;
+
+        if (isStepping) {
+          npc.frameIndex = Math.floor(progress * animPattern.length) % animPattern.length;
+        } else {
+          npc.frameIndex = 0;
         }
+      } else {
+        // Legacy standalone / playable mode
+        if(!npc.isMoving){
+          let lengthOfMovementList = npc.movementQueue.length ;
+          if(lengthOfMovementList > 0){
+            this.movementOfNPC(npc.movementQueue[lengthOfMovementList - 1], npc);
+            npc.movementQueue.pop()
+          }
+        }
+
+        if(npc.frameIndex >= animPattern.length - 1){
+          npc.isMoving = false;
+          npc.isMovingY = false;
+          npc.isMovingX = false;
+          npc.frameIndex = 0;
+        }else{
+          if(npc.isMoving){
+            npc.frameIndex++;
+          }
+        }
+
+        if(!npc.playable){
+          this.npcRandomWalk(npc)
+        }else{
+          this.chosenNpc = npc
+        }
+
+        currentDisplayX = this.getCurrentPositionToDisplay(npc, npc.isMovingX, npc.previousX, npc.currentX);
+        currentDisplayY = this.getCurrentPositionToDisplay(npc, npc.isMovingY, npc.previousY, npc.currentY);
       }
 
-      if(!npc.playable){
-        this.npcRandomWalk(npc)
-      }else{
-        this.chosenNpc = npc
-      }
+      // Point 2: Visual sizing and placement based on lifeStage
+      const isChild = npc.lifeStage === 'child';
+      const scale = isChild ? 0.55 : 1.0;
+      const drawSize = npc.frameWidth * scale;
 
-      // let maxFrameFire = 12;
-      // let currentFrameFire = 0;
-      // if(this.chosenNpc){
-      //   overWorld.renderNpc(
-      //     i == 0 ? true : false,
-      //     "../../assets/img/chosen.png",
-      //     this.getCurrentPositionToDisplay(this.chosenNpc, this.chosenNpc.isMovingX, this.chosenNpc.previousX, this.chosenNpc.currentX),
-      //     this.getCurrentPositionToDisplay(this.chosenNpc, this.chosenNpc.isMovingY, this.chosenNpc.previousY, this.chosenNpc.currentY) ,
-      //     this.npcMovingIndex['right'][npc.frameIndex][1] * npc.frameWidth,
-      //     this.npcMovingIndex['right'][0][0] * npc.frameWidth
-      //   );  
-      // }
-
-      const currentDisplayX = this.getCurrentPositionToDisplay(npc, npc.isMovingX, npc.previousX, npc.currentX);
-      const currentDisplayY = this.getCurrentPositionToDisplay(npc, npc.isMovingY, npc.previousY, npc.currentY);
+      const drawX = isChild ? currentDisplayX - 13 : currentDisplayX - 27;
+      const drawY = isChild ? currentDisplayY - 14 : currentDisplayY - 34;
 
       overWorld.renderNpc(
-        i == 0 ? true : false,
+        false,
         npc.spriteUrl || "../../assets/characters/npcs/adam.png",
-        currentDisplayX - 27,
-        currentDisplayY - 34,
+        drawX,
+        drawY,
         animPattern[npc.frameIndex][1] * npc.frameWidth,
         animPattern[0][0] * npc.frameWidth,
         npc.frameWidth,
         npc.frameWidth,
-        npc.frameWidth,
-        npc.frameWidth
+        drawSize,
+        drawSize
       ); 
     }
   }

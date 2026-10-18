@@ -143,10 +143,22 @@ export class DecisionSystem {
     }
 
     // 6. Default: Exploration / Wander
-    if (rng.nextBool(0.5)) {
+    // If individual is already actively exploring towards a target, keep moving until destination reached
+    if (ind.currentGoal === 'explore' && ind.targetTile) {
+      if (ind.x !== ind.targetTile.x || ind.y !== ind.targetTile.y) {
+        const targetTileObj = grid.get(ind.targetTile.x, ind.targetTile.y);
+        if (targetTileObj && targetTileObj.traversable) {
+          ind.currentAction = 'move';
+          return;
+        }
+      }
+    }
+
+    // Pick multi-step exploration destination (3 to 6 tiles away) or idle briefly
+    if (rng.nextBool(0.75)) {
       ind.currentGoal = 'explore';
       ind.currentAction = 'move';
-      DecisionSystem.pickRandomWanderTarget(ind, grid, rng);
+      DecisionSystem.pickExploreTarget(ind, grid, rng);
     } else {
       ind.currentGoal = 'idle';
       ind.currentAction = 'idle';
@@ -184,6 +196,34 @@ export class DecisionSystem {
     }
 
     return nearest;
+  }
+
+  private static pickExploreTarget(ind: Individual, grid: TileGrid, rng: IRandom): void {
+    const distance = rng.nextInt(3, 6);
+    const angle = rng.next() * Math.PI * 2;
+    const targetX = Math.round(ind.x + Math.cos(angle) * distance);
+    const targetY = Math.round(ind.y + Math.sin(angle) * distance);
+
+    const clampedX = Math.max(0, Math.min(grid.width - 1, targetX));
+    const clampedY = Math.max(0, Math.min(grid.height - 1, targetY));
+    const tile = grid.get(clampedX, clampedY);
+
+    if (tile && tile.traversable && (clampedX !== ind.x || clampedY !== ind.y)) {
+      ind.targetTile = { x: clampedX, y: clampedY };
+    } else {
+      const fallback = NavigationSystem.findNearestTile(
+        grid,
+        clampedX,
+        clampedY,
+        (t) => t.traversable && (t.x !== ind.x || t.y !== ind.y),
+        4
+      );
+      if (fallback) {
+        ind.targetTile = { x: fallback.x, y: fallback.y };
+      } else {
+        DecisionSystem.pickRandomWanderTarget(ind, grid, rng);
+      }
+    }
   }
 
   private static pickRandomWanderTarget(ind: Individual, grid: TileGrid, rng: IRandom): void {

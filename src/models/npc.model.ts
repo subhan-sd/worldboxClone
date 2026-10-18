@@ -1,6 +1,7 @@
 export type MovementPattern = { [key: string]: number[][] };
 
 export type Gender = 'male' | 'female';
+export type LifeStage = 'child' | 'adult' | 'elder';
 
 export class NPC {
   currentX: number;
@@ -21,6 +22,24 @@ export class NPC {
   name: string;
   spriteUrl: string;
 
+  // Living World simulation properties
+  simulated: boolean = false;
+  lifeStage: LifeStage = 'adult';
+  age: number = 20;
+  currentGoal: string = 'idle';
+
+  // Smooth interpolation fields
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  stepStartTime: number = 0;
+  stepDuration: number = 600;
+  offsetX: number = 0;
+  offsetY: number = 0;
+  currentDisplayX: number;
+  currentDisplayY: number;
+
   constructor(
     currentX: number = 10,
     currentY: number = 10,
@@ -32,6 +51,12 @@ export class NPC {
   ) {
     this.currentX = currentX;
     this.currentY = currentY;
+    this.startX = currentX;
+    this.startY = currentY;
+    this.targetX = currentX;
+    this.targetY = currentY;
+    this.currentDisplayX = currentX * 10;
+    this.currentDisplayY = currentY * 10;
     this.isMovingX = false;
     this.isMovingY = false;
     this.currentDirection = 'down';
@@ -39,8 +64,8 @@ export class NPC {
     this.frameWidth = 64;
     this.frameIndex = 0;
     this.movementQueue = [];
-    this.previousX = { value: 0 };
-    this.previousY = { value: 0 };
+    this.previousX = { value: currentX * 10 };
+    this.previousY = { value: currentY * 10 };
     this.playable = playable;
     this.state = state;
     this.gender = gender;

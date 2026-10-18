@@ -211,12 +211,10 @@ export class WorldCanvasComponent implements OnInit, OnDestroy  {
 
   startGameLoop() { 
     const gameLoop = () => {
-      setTimeout(() => {
-        this.npcService.render(this.overWorld);
-        requestAnimationFrame(() => gameLoop());
-      }, 41);
+      this.npcService.render(this.overWorld);
+      requestAnimationFrame(() => gameLoop());
     };
-    gameLoop();
+    requestAnimationFrame(() => gameLoop());
   }
 
   windowDimensions(){
